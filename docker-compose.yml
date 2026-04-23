@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: prepkit
+      MYSQL_USER: prepkit
+      MYSQL_PASSWORD: prepkit
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "prepkit", "--password=prepkit"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      MYSQL_SERVER: db
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
