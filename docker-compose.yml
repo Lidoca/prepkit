@@ -16,8 +16,8 @@ services:
       start_period: 30s
 
   app:
-    build: .
-    env_file: .env
+    build: ./backend
+    env_file: ./backend/.env
     environment:
       MYSQL_SERVER: db
     ports:
@@ -25,3 +25,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://app:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app

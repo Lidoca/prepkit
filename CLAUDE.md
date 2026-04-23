@@ -1,27 +1,37 @@
 # prepkit
 
-면접 질문 관리 API. 질문/태그 CRUD + SM-2 스페이스드 리피티션 복습 스케줄러.
+면접 질문 관리 앱. FastAPI 백엔드 + Next.js 프론트엔드.
 
 ## 스택
 
+**백엔드** (`backend/`)
 - **FastAPI** + **SQLModel** + **MySQL** (pymysql)
 - **JWT** 인증 (pyjwt + pwdlib argon2/bcrypt)
 - **Alembic** 마이그레이션
-- Docker Compose (로컬 개발 / 테스트)
+
+**프론트엔드** (`frontend/`)
+- **Next.js 16** (App Router) + **TypeScript** + **Tailwind CSS**
+- Next.js rewrites로 `/api/*` → FastAPI 프록시 (CORS 불필요)
 
 ## 개발 환경
 
 ```bash
-# Docker로 전체 스택 기동 (MySQL + 앱)
+# Docker로 전체 스택 기동 (MySQL + FastAPI)
 docker compose up -d
 
-# 로컬 실행 (.env에서 MYSQL_SERVER=localhost 확인)
-source .venv/bin/activate
+# 백엔드 로컬 실행
+source .venv/bin/activate   # .venv는 루트에 위치 (backend/로 이동 후 재생성 가능)
+cd backend
 make dev          # fastapi dev app/main.py
 
 # 마이그레이션
+cd backend
 make migrate                      # alembic upgrade head
 make makemigration m="설명"        # autogenerate 후 파일 생성
+
+# 프론트엔드 실행 (백엔드가 :8000에서 실행 중이어야 함)
+cd frontend
+npm run dev       # http://localhost:3000
 ```
 
 API 문서: `http://localhost:8000/docs`
@@ -29,24 +39,48 @@ API 문서: `http://localhost:8000/docs`
 ## 프로젝트 구조
 
 ```
-app/
-├── models.py          # User · Tag · Question · QuestionTagLink · ReviewSchedule
-├── crud.py            # CRUD 함수 + SM-2 알고리즘 (_sm2_update)
-├── main.py            # FastAPI 앱 진입점
-├── core/
-│   ├── config.py      # pydantic-settings (MYSQL_*, SECRET_KEY 등)
-│   ├── security.py    # JWT 생성/검증, 패스워드 해싱
-│   └── db.py          # engine, init_db (superuser 생성)
-├── api/
-│   ├── deps.py        # SessionDep · CurrentUser (JWT → uuid.UUID 변환)
-│   └── routes/
-│       ├── login.py   # POST /login/access-token
-│       ├── users.py   # /users/*
-│       ├── questions.py  # /questions/*
-│       ├── tags.py       # /tags/*
-│       └── reviews.py    # /reviews/due · /{q_id} · /{q_id}/submit
-└── alembic/versions/  # 마이그레이션 파일
+backend/
+├── app/
+│   ├── models.py          # User · Tag · Question · QuestionTagLink · ReviewSchedule
+│   ├── crud.py            # CRUD 함수 + SM-2 알고리즘 (_sm2_update)
+│   ├── main.py            # FastAPI 앱 진입점
+│   ├── core/
+│   │   ├── config.py      # pydantic-settings (MYSQL_*, SECRET_KEY 등)
+│   │   ├── security.py    # JWT 생성/검증, 패스워드 해싱
+│   │   └── db.py          # engine, init_db (superuser 생성)
+│   └── api/
+│       ├── deps.py        # SessionDep · CurrentUser (JWT → uuid.UUID 변환)
+│       └── routes/
+│           ├── login.py   # POST /login/access-token
+│           ├── users.py   # /users/*
+│           ├── questions.py  # /questions/*
+│           ├── tags.py       # /tags/*
+│           └── reviews.py    # /reviews/due · /{q_id}/submit
+├── alembic.ini
+├── Makefile
+└── Dockerfile
+
+frontend/
+├── app/
+│   ├── login/page.tsx     # 로그인
+│   ├── questions/page.tsx # 질문 목록·생성·삭제
+│   ├── reviews/page.tsx   # SM-2 복습 세션
+│   ├── layout.tsx         # 루트 레이아웃 (Nav 포함)
+│   └── page.tsx           # /questions로 리다이렉트
+├── components/
+│   └── Nav.tsx            # 네비게이션 바
+├── lib/
+│   ├── api.ts             # FastAPI 클라이언트 (fetch 래퍼)
+│   └── types.ts           # TypeScript 타입 (백엔드 모델 대응)
+└── next.config.ts         # /api/* → http://localhost:8000 rewrite
 ```
+
+## 프론트엔드 API 연결 구조
+
+- `next.config.ts`의 rewrites: `/api/:path*` → `BACKEND_URL/api/:path*`
+- `frontend/lib/api.ts`: 인증 토큰(`localStorage`)을 자동으로 `Authorization` 헤더에 첨부
+- `frontend/.env.local`: `BACKEND_URL=http://localhost:8000`
+- 인증: JWT를 `localStorage['access_token']`에 저장, 페이지 진입 시 토큰 없으면 `/login`으로 리다이렉트
 
 ## API 엔드포인트
 
@@ -71,6 +105,7 @@ app/
 - `Optional["ReviewSchedule"]` 사용 — SQLAlchemy는 `"X | None"` 문자열 어노테이션 미지원
 - `deps.py`에서 `uuid.UUID(token_data.sub)` 변환 필수 — MySQL CHAR(32) UUID 쿼리 시 필요
 - `content`/`answer` 필드는 `sa_type=Text()` — MySQL TEXT 타입 매핑
+- Next.js 16: `middleware.ts` → `proxy.ts`로 이름 변경됨 (아직 미사용)
 
 ## SM-2 알고리즘
 
@@ -81,8 +116,9 @@ app/
 - 이후: `interval = round(interval * ease_factor)`
 - `ease_factor` 조정: `ef += 0.1 - (5-q) * (0.08 + (5-q) * 0.02)`, 최솟값 1.3
 
-## 환경 변수 (.env)
+## 환경 변수
 
+**`backend/.env`**
 ```
 PROJECT_NAME=prepkit
 SECRET_KEY=<32자 이상 랜덤>
@@ -93,4 +129,9 @@ MYSQL_PASSWORD=prepkit
 MYSQL_DB=prepkit
 FIRST_SUPERUSER=admin@prepkit.dev
 FIRST_SUPERUSER_PASSWORD=<비밀번호>
+```
+
+**`frontend/.env.local`**
+```
+BACKEND_URL=http://localhost:8000
 ```
