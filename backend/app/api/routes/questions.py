@@ -32,7 +32,7 @@ def _get_owned_question(
     return question
 
 
-@router.get("/", response_model=QuestionsPublic)
+@router.get("", response_model=QuestionsPublic)
 def read_questions(
     session: SessionDep,
     current_user: CurrentUser,
@@ -52,7 +52,7 @@ def read_questions(
     return QuestionsPublic(data=questions, count=count)
 
 
-@router.post("/", response_model=QuestionPublic)
+@router.post("", response_model=QuestionPublic)
 def create_question(
     session: SessionDep, current_user: CurrentUser, question_in: QuestionCreate
 ) -> Any:

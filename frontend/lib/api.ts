@@ -12,7 +12,7 @@ import type {
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token =
-    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    globalThis.window === undefined ? null : localStorage.getItem('access_token');
 
   const headers: Record<string, string> = {};
   if (!(init.body instanceof URLSearchParams)) {
@@ -61,10 +61,10 @@ export const api = {
       if (params?.skip != null) q.set('skip', String(params.skip));
       if (params?.limit != null) q.set('limit', String(params.limit));
       const qs = q.toString();
-      return req<QuestionsPublic>(`/questions/${qs ? '?' + qs : ''}`);
+      return req<QuestionsPublic>(`/questions${qs ? '?' + qs : ''}`);
     },
     create: (data: QuestionCreate) =>
-      req<QuestionPublic>('/questions/', {
+      req<QuestionPublic>('/questions', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -79,9 +79,9 @@ export const api = {
   },
 
   tags: {
-    list: () => req<TagsPublic>('/tags/'),
+    list: () => req<TagsPublic>('/tags'),
     create: (data: { name: string }) =>
-      req<TagPublic>('/tags/', { method: 'POST', body: JSON.stringify(data) }),
+      req<TagPublic>('/tags', { method: 'POST', body: JSON.stringify(data) }),
   },
 
   reviews: {

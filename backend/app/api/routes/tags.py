@@ -10,7 +10,7 @@ from app.models import Message, Tag, TagCreate, TagPublic, TagsPublic, TagUpdate
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
-@router.get("/", response_model=TagsPublic)
+@router.get("", response_model=TagsPublic)
 def read_tags(
     session: SessionDep,
     current_user: CurrentUser,
@@ -23,7 +23,7 @@ def read_tags(
     return TagsPublic(data=tags, count=count)
 
 
-@router.post("/", response_model=TagPublic)
+@router.post("", response_model=TagPublic)
 def create_tag(
     session: SessionDep, current_user: CurrentUser, tag_in: TagCreate
 ) -> Any:

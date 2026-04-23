@@ -8,6 +8,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ARG BACKEND_URL=http://localhost:8000
+ENV BACKEND_URL=$BACKEND_URL
 RUN node_modules/.bin/next build
 
 FROM node:24-alpine AS runner
