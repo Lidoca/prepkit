@@ -1,20 +1,19 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
 from pwdlib import PasswordHash
-from pwdlib.hashers.argon2 import Argon2Hasher
 
 from app.core.config import settings
 
-password_hash = PasswordHash(Argon2Hasher())
+password_hash = PasswordHash.recommended()
 
 
 ALGORITHM = "HS256"
 
 
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = datetime.now(UTC) + expires_delta
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
