@@ -4,16 +4,10 @@ from typing import Any
 import jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
-from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import settings
 
-password_hash = PasswordHash(
-    (
-        Argon2Hasher(),
-        BcryptHasher(),
-    )
-)
+password_hash = PasswordHash(Argon2Hasher())
 
 
 ALGORITHM = "HS256"

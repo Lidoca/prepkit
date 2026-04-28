@@ -20,7 +20,7 @@
 docker compose up -d
 
 # 백엔드 로컬 실행
-source .venv/bin/activate   # .venv는 루트에 위치 (backend/로 이동 후 재생성 가능)
+source backend/.venv/bin/activate   # .venv는 backend/ 안에 위치
 cd backend
 make dev          # fastapi dev app/main.py
 
